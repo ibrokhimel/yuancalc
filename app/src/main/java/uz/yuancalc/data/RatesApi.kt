@@ -50,9 +50,10 @@ class OpenErRatesApi(private val client: OkHttpClient) : RatesApi {
         val usdToUzs = rates["UZS"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
         val usdToCny = rates["CNY"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
         if (usdToCny == 0.0) return null
-        val at = root["time_last_update_unix"]?.jsonPrimitive?.content?.toLongOrNull()
-            ?: (System.currentTimeMillis() / 1000)
-        return FetchedRates(1.0 / usdToCny, usdToUzs, at)
+        // Our fetch time, not the API's publish time: this source refreshes once
+        // a day, and "Live · updated 23 h ago" reads as a contradiction. The
+        // status line answers "when did the app last sync", so that is what we store.
+        return FetchedRates(1.0 / usdToCny, usdToUzs, System.currentTimeMillis() / 1000)
     }
 }
 
