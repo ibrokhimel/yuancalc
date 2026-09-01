@@ -20,12 +20,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.yuancalc.R
 import uz.yuancalc.core.PriceRounding
-import uz.yuancalc.core.parseAmount
 import uz.yuancalc.data.AppLanguage
-import uz.yuancalc.ui.components.AmountField
+import uz.yuancalc.ui.components.DraftNumberField
 import uz.yuancalc.ui.components.OptionToggle
 import uz.yuancalc.ui.components.SectionCard
-import uz.yuancalc.ui.components.trimNumber
 
 @Composable
 fun SettingsScreen(vm: CalculatorViewModel) {
@@ -38,12 +36,10 @@ fun SettingsScreen(vm: CalculatorViewModel) {
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         SectionCard(stringResource(R.string.settings_cargo_rate)) {
-            AmountField(
+            DraftNumberField(
                 label = stringResource(R.string.settings_cargo_rate),
-                value = trimNumber(s.cargoRateUsdPerKg),
-                onValueChange = { text ->
-                    parseAmount(text)?.let { v -> vm.updateSettings { it.copy(cargoRateUsdPerKg = v) } }
-                },
+                value = s.cargoRateUsdPerKg,
+                onCommit = { v -> v?.let { r -> vm.updateSettings { it.copy(cargoRateUsdPerKg = r) } } },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
@@ -51,22 +47,20 @@ fun SettingsScreen(vm: CalculatorViewModel) {
         }
 
         SectionCard(stringResource(R.string.settings_multiples)) {
-            AmountField(
+            DraftNumberField(
                 label = stringResource(R.string.settings_soft_multiple),
-                value = trimNumber(s.softMultiple),
-                onValueChange = { text ->
-                    parseAmount(text)?.let { v -> if (v > 0.0) vm.onSoftMultipleChange(v) }
-                },
+                value = s.softMultiple,
+                onCommit = { v -> v?.let(vm::onSoftMultipleChange) },
+                accept = { it > 0.0 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
             )
-            AmountField(
+            DraftNumberField(
                 label = stringResource(R.string.settings_profitable_multiple),
-                value = trimNumber(s.profitableMultiple),
-                onValueChange = { text ->
-                    parseAmount(text)?.let { v -> if (v > 0.0) vm.onProfitableMultipleChange(v) }
-                },
+                value = s.profitableMultiple,
+                onCommit = { v -> v?.let(vm::onProfitableMultipleChange) },
+                accept = { it > 0.0 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
@@ -112,13 +106,12 @@ fun SettingsScreen(vm: CalculatorViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = 8.dp),
             ) {
-                AmountField(
+                DraftNumberField(
                     label = stringResource(R.string.settings_pin_cny),
-                    value = s.pinnedCnyToUsd?.let { trimNumber(it) } ?: "",
-                    onValueChange = { text ->
-                        val v = parseAmount(text)
-                        vm.updateSettings { it.copy(pinnedCnyToUsd = v?.takeIf { p -> p > 0.0 }) }
-                    },
+                    value = s.pinnedCnyToUsd,
+                    onCommit = { v -> vm.updateSettings { it.copy(pinnedCnyToUsd = v) } },
+                    allowEmpty = true,
+                    accept = { it > 0.0 },
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { vm.updateSettings { it.copy(pinnedCnyToUsd = null) } }) {
@@ -129,13 +122,12 @@ fun SettingsScreen(vm: CalculatorViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = 8.dp),
             ) {
-                AmountField(
+                DraftNumberField(
                     label = stringResource(R.string.settings_pin_uzs),
-                    value = s.pinnedUsdToUzs?.let { trimNumber(it) } ?: "",
-                    onValueChange = { text ->
-                        val v = parseAmount(text)
-                        vm.updateSettings { it.copy(pinnedUsdToUzs = v?.takeIf { p -> p > 0.0 }) }
-                    },
+                    value = s.pinnedUsdToUzs,
+                    onCommit = { v -> vm.updateSettings { it.copy(pinnedUsdToUzs = v) } },
+                    allowEmpty = true,
+                    accept = { it > 0.0 },
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { vm.updateSettings { it.copy(pinnedUsdToUzs = null) } }) {

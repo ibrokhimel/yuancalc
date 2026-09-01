@@ -43,6 +43,10 @@ fun bandColor(band: MarkupBand): Color = when (band) {
  * One suggested price. The multiple is edited here rather than in Settings, so
  * a one-off "what if I charged 2x" needs no trip to another screen; the edited
  * value persists as the new default.
+ *
+ * The draft is seeded when editing starts and is otherwise left alone, so a
+ * keystroke that commits (typing "2." commits 2.0) does not reset the text and
+ * swallow the dot.
  */
 @Composable
 fun TierRow(
@@ -52,7 +56,7 @@ fun TierRow(
     onUse: () -> Unit,
 ) {
     var editing by remember { mutableStateOf(false) }
-    var draft by remember(quote.multiple) { mutableStateOf(trimNumber(quote.multiple)) }
+    var draft by remember { mutableStateOf("") }
 
     Column(Modifier.padding(vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -75,7 +79,12 @@ fun TierRow(
                     Text(stringResource(R.string.action_done))
                 }
             } else {
-                TextButton(onClick = { editing = true }) {
+                TextButton(
+                    onClick = {
+                        draft = trimNumber(quote.multiple)
+                        editing = true
+                    }
+                ) {
                     Text(formatMarkup(quote.multiple))
                 }
             }
@@ -124,7 +133,3 @@ private fun relativeTime(epochSeconds: Long?): String {
         else -> stringResource(R.string.days_ago, (elapsed / 86_400).toInt())
     }
 }
-
-/** 9.0 -> "9", 1.8 -> "1.8" — avoids showing "9.0" in an editable field. */
-fun trimNumber(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
