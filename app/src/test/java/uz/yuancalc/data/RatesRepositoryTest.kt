@@ -80,6 +80,22 @@ class RatesRepositoryTest {
     }
 
     @Test
+    fun `the reason for a failed refresh is recorded`() = runTest {
+        val (r, _) = repo(FakeApi(null), FakeApi(null, throws = true))
+
+        assertFalse(r.refresh())
+        assertTrue(r.lastError!!.contains("network down"))
+    }
+
+    @Test
+    fun `a successful refresh clears the recorded error`() = runTest {
+        val (r, _) = repo(FakeApi(null, throws = true), FakeApi(FetchedRates(0.1485, 11_817.0, 3L)))
+
+        assertTrue(r.refresh())
+        assertNull(r.lastError)
+    }
+
+    @Test
     fun `an implausible som rate is rejected and the fallback is used`() = runTest {
         val primary = FakeApi(FetchedRates(0.1488, 12.0, 1_000L))
         val fallback = FakeApi(FetchedRates(0.1485, 11_817.0, 3_000L))

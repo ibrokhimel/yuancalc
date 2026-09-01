@@ -1,5 +1,7 @@
 package uz.yuancalc.data
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -25,11 +27,17 @@ fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
     .readTimeout(10, TimeUnit.SECONDS)
     .build()
 
-private fun OkHttpClient.getBody(url: String): String? {
+/**
+ * Runs the blocking OkHttp call off the main thread. Without this, calling
+ * refresh() from a ViewModel scope throws NetworkOnMainThreadException, which
+ * the repository's catch-all swallows — so every fetch silently fails and the
+ * app quietly sits on bundled rates forever.
+ */
+private suspend fun OkHttpClient.getBody(url: String): String? = withContext(Dispatchers.IO) {
     val request = Request.Builder().url(url).build()
     newCall(request).execute().use { response ->
-        if (!response.isSuccessful) return null
-        return response.body?.string()
+        if (!response.isSuccessful) return@withContext null
+        response.body?.string()
     }
 }
 
