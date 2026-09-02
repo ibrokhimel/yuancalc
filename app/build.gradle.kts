@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+}
+
+// The keystore and its passwords never enter the repo. Signing is configured
+// only when keystore.properties exists, so a machine without the key still
+// configures and builds debug.
+val keystoreProps = rootProject.file("keystore.properties").let { file ->
+    if (file.exists()) Properties().apply { file.inputStream().use(::load) } else null
 }
 
 android {
@@ -13,13 +22,32 @@ android {
         applicationId = "uz.yuancalc"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.2"
+    }
+
+    if (keystoreProps != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            // Debug and release are signed by different keys and cannot update
+            // each other; a distinct id lets them coexist on one phone.
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
+            if (keystoreProps != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -31,6 +59,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

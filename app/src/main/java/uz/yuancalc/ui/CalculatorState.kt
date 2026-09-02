@@ -7,11 +7,14 @@ import uz.yuancalc.core.PricingInput
 import uz.yuancalc.core.RateSource
 import uz.yuancalc.core.Rates
 import uz.yuancalc.core.SensitivityRow
+import uz.yuancalc.core.SourcingInput
 import uz.yuancalc.core.TierQuote
 import uz.yuancalc.core.WeightUnit
 import uz.yuancalc.core.landedCost
 import uz.yuancalc.core.markupBand
 import uz.yuancalc.core.markupForPrice
+import uz.yuancalc.core.maxCostCny
+import uz.yuancalc.core.maxProductUsd
 import uz.yuancalc.core.parseAmount
 import uz.yuancalc.core.parseAmountOrZero
 import uz.yuancalc.core.sensitivity
@@ -23,6 +26,7 @@ data class CalculatorInputs(
     val weight: String = "",
     val otherCosts: String = "",
     val myPrice: String = "",
+    val targetPrice: String = "",
 )
 
 data class PriceCheck(
@@ -33,6 +37,26 @@ data class PriceCheck(
     val profitUzs: Double,
 )
 
+data class SourcingTier(
+    val multiple: Double,
+    val maxProductUsd: Double?,
+    val maxCostCny: Double?,
+)
+
+data class SourcingRow(val weightGrams: Double, val maxCostCny: Double?)
+
+data class SourcingState(
+    val targetUsd: Double,
+    val targetUzs: Double,
+    val cargoUsd: Double,
+    /** Landed budget at the profitable tier — quoted when the price cannot work. */
+    val landedBudgetUsd: Double?,
+    val soft: SourcingTier,
+    val profitable: SourcingTier,
+    /** Max ¥ cost at the profitable tier for weight −100 g / as-is / +100 g. */
+    val strip: List<SourcingRow>,
+)
+
 data class CalculatorState(
     val landed: LandedCost,
     val landedUzs: Double,
@@ -41,6 +65,7 @@ data class CalculatorState(
     val myPriceCheck: PriceCheck?,
     val band: MarkupBand,
     val sensitivity: List<SensitivityRow>,
+    val sourcing: SourcingState,
     val rates: Rates,
 )
 
@@ -75,15 +100,14 @@ fun computeState(
     }
 
     val otherRaw = parseAmountOrZero(inputs.otherCosts)
-    val otherUsd = when (settings.otherCostsCurrency) {
-        MoneyCurrency.USD -> otherRaw
-        MoneyCurrency.UZS -> if (rates.usdToUzs > 0.0) otherRaw / rates.usdToUzs else 0.0
-    }
+    val otherUsd = toUsd(otherRaw, settings.otherCostsCurrency, rates)
+
+    val cargoRate = settings.selectedCargoProfile().ratePerKgUsd
 
     val pricingInput = PricingInput(
-        costCny = parseAmountOrZero(inputs.cost),
+        costUsd = toUsd(parseAmountOrZero(inputs.cost), settings.costCurrency, rates),
         weightGrams = weightGrams,
-        cargoRateUsdPerKg = settings.cargoRateUsdPerKg,
+        cargoRateUsdPerKg = cargoRate,
         otherCostsUsd = otherUsd,
     )
 
@@ -100,10 +124,7 @@ fun computeState(
     )
 
     val check = parseAmount(inputs.myPrice)?.let { entered ->
-        val priceUsd = when (settings.myPriceCurrency) {
-            MoneyCurrency.USD -> entered
-            MoneyCurrency.UZS -> if (rates.usdToUzs > 0.0) entered / rates.usdToUzs else 0.0
-        }
+        val priceUsd = toUsd(entered, settings.myPriceCurrency, rates)
         val priceUzs = priceUsd * rates.usdToUzs
         PriceCheck(
             priceUsd = priceUsd,
@@ -126,6 +147,62 @@ fun computeState(
         myPriceCheck = check,
         band = markupBand(check?.markup, settings.softMultiple, settings.profitableMultiple),
         sensitivity = sensitivity(pricingInput, rates, sensitivityPriceUsd),
+        sourcing = computeSourcing(inputs, settings, rates, weightGrams, cargoRate, otherUsd),
         rates = rates,
+    )
+}
+
+/** A raw entry normalized to USD; internal computation is USD-only. */
+private fun toUsd(value: Double, currency: MoneyCurrency, rates: Rates): Double = when (currency) {
+    MoneyCurrency.CNY -> value * rates.cnyToUsd
+    MoneyCurrency.USD -> value
+    MoneyCurrency.UZS -> if (rates.usdToUzs > 0.0) value / rates.usdToUzs else 0.0
+}
+
+/**
+ * Reverse mode: from a target selling price down to the most that can be paid.
+ * The target is used exactly as entered — [uz.yuancalc.core.roundPrice] rounds
+ * *suggested* prices, not the user's own number.
+ */
+private fun computeSourcing(
+    inputs: CalculatorInputs,
+    settings: AppSettings,
+    rates: Rates,
+    weightGrams: Double,
+    cargoRate: Double,
+    otherUsd: Double,
+): SourcingState {
+    val targetUsd = toUsd(parseAmountOrZero(inputs.targetPrice), settings.targetPriceCurrency, rates)
+    val input = SourcingInput(
+        targetPriceUsd = targetUsd,
+        weightGrams = weightGrams,
+        cargoRateUsdPerKg = cargoRate,
+        otherCostsUsd = otherUsd,
+    )
+
+    fun tier(multiple: Double): SourcingTier {
+        val max = maxProductUsd(input, multiple)
+        return SourcingTier(multiple, max, maxCostCny(max, rates))
+    }
+
+    val strip = listOf(weightGrams - 100.0, weightGrams, weightGrams + 100.0)
+        .filter { it >= 0.0 }
+        .map { grams ->
+            val max = maxProductUsd(input.copy(weightGrams = grams), settings.profitableMultiple)
+            SourcingRow(grams, maxCostCny(max, rates))
+        }
+
+    return SourcingState(
+        targetUsd = targetUsd,
+        targetUzs = targetUsd * rates.usdToUzs,
+        cargoUsd = (weightGrams / 1_000.0) * cargoRate,
+        landedBudgetUsd = if (settings.profitableMultiple > 0.0) {
+            targetUsd / settings.profitableMultiple
+        } else {
+            null
+        },
+        soft = tier(settings.softMultiple),
+        profitable = tier(settings.profitableMultiple),
+        strip = strip,
     )
 }

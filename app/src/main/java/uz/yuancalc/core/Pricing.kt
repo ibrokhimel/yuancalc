@@ -2,10 +2,14 @@ package uz.yuancalc.core
 
 enum class WeightUnit { GRAMS, KILOGRAMS }
 
-enum class MoneyCurrency { USD, UZS }
+enum class MoneyCurrency { CNY, USD, UZS }
 
+/**
+ * All internal computation is in USD as the base unit; a cost entered in ¥ is
+ * converted at the boundary where the field is read, not here.
+ */
 data class PricingInput(
-    val costCny: Double,
+    val costUsd: Double,
     val weightGrams: Double,
     val cargoRateUsdPerKg: Double,
     val otherCostsUsd: Double,
@@ -20,10 +24,35 @@ data class LandedCost(
 }
 
 fun landedCost(input: PricingInput, rates: Rates): LandedCost = LandedCost(
-    productUsd = input.costCny * rates.cnyToUsd,
+    productUsd = input.costUsd,
     cargoUsd = (input.weightGrams / 1_000.0) * input.cargoRateUsdPerKg,
     otherUsd = input.otherCostsUsd,
 )
+
+data class SourcingInput(
+    val targetPriceUsd: Double,
+    val weightGrams: Double,
+    val cargoRateUsdPerKg: Double,
+    val otherCostsUsd: Double,
+)
+
+/**
+ * Sourcing mode's core question: the most that can be paid for the product
+ * itself, so that the target price still clears [multiple].
+ *
+ * Null when the multiple is not positive, when there is no target, or when
+ * cargo and other costs already eat the whole budget — a negative maximum is
+ * not advice, it is a reason, and the caller explains it instead.
+ */
+fun maxProductUsd(input: SourcingInput, multiple: Double): Double? {
+    if (multiple <= 0.0 || input.targetPriceUsd <= 0.0) return null
+    val cargoUsd = (input.weightGrams / 1_000.0) * input.cargoRateUsdPerKg
+    val budget = input.targetPriceUsd / multiple - cargoUsd - input.otherCostsUsd
+    return if (budget > 0.0) budget else null
+}
+
+fun maxCostCny(maxProductUsd: Double?, rates: Rates): Double? =
+    maxProductUsd?.let { if (rates.cnyToUsd > 0.0) it / rates.cnyToUsd else null }
 
 /** Null when nothing has been spent — there is no meaningful multiple of zero. */
 fun markupForPrice(landedUsd: Double, priceUsd: Double): Double? =
@@ -64,6 +93,26 @@ fun tierQuote(
 }
 
 enum class MarkupBand { LOW, OK, GOOD, UNKNOWN }
+
+enum class PriceVerdict { UNPROFITABLE, SOFT, PROFITABLE, EXCELLENT, NOBODY }
+
+/**
+ * The blunt read on a candidate price, in the seller's own terms: below cost
+ * it's a loss, below the soft tier it's thin, between the tiers it's the
+ * target zone, above them it's a great price — until it drifts a full turn
+ * past the profitable tier, where it stops selling at all.
+ */
+fun priceVerdict(multiple: Double, soft: Double, profitable: Double): PriceVerdict {
+    val low = minOf(soft, profitable)
+    val high = maxOf(soft, profitable)
+    return when {
+        multiple < 1.0 -> PriceVerdict.UNPROFITABLE
+        multiple < low -> PriceVerdict.SOFT
+        multiple <= high -> PriceVerdict.PROFITABLE
+        multiple <= high + 1.0 -> PriceVerdict.EXCELLENT
+        else -> PriceVerdict.NOBODY
+    }
+}
 
 /**
  * Thresholds come from the user's own tiers rather than fixed constants, so the

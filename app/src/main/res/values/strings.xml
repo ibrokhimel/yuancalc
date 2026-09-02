@@ -10,7 +10,12 @@
     <string name="label_weight">Weight</string>
     <string name="label_other_costs">Other costs per item</string>
     <string name="label_landed_cost">Landed cost</string>
-    <string name="label_suggested_prices">Suggested prices</string>
+    <string name="label_suggested_prices">Find your price</string>
+    <string name="verdict_unprofitable">Unprofitable</string>
+    <string name="verdict_soft">Soft profit</string>
+    <string name="verdict_profitable">Profitable</string>
+    <string name="verdict_excellent">Excellent price</string>
+    <string name="verdict_nobody">Nobody will buy this</string>
     <string name="label_my_price">My price</string>
     <string name="tier_soft">Soft</string>
     <string name="tier_profitable">Profitable</string>
@@ -24,7 +29,8 @@
     <string name="sensitivity_title">If the weight is off</string>
     <string name="action_done">Done</string>
 
-    <string name="rate_status_live">Live · updated %1$s</string>
+    <string name="rate_status_updating">Updating exchange rates…</string>
+    <string name="rate_status_updated">Updated %1$s</string>
     <string name="rate_status_cached">Offline · rates from %1$s</string>
     <string name="rate_status_pinned">Pinned rates</string>
     <string name="rate_status_bundled">Built-in rates · not yet updated</string>
@@ -48,10 +54,34 @@
     <string name="settings_pin_cny">Pin 1 ¥ in $</string>
     <string name="settings_pin_uzs">Pin $1 in so\'m</string>
     <string name="settings_unpin">Unpin</string>
+    <string name="settings_not_pinned">not pinned</string>
     <string name="settings_refresh">Refresh rates</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System</string>
     <string name="settings_language_english">English</string>
     <string name="settings_language_uzbek">O\'zbekcha</string>
     <string name="settings_tiers_warning">The soft multiple is above the profitable one.</string>
+
+    <string name="mode_price">Price it</string>
+    <string name="mode_source">Source it</string>
+    <string name="label_target_price">Target price</string>
+    <string name="label_max_cost">Max cost</string>
+    <string name="sourcing_impossible">Cargo alone is %1$s. At %2$s this price supports only %3$s of landed cost.</string>
+    <string name="sourcing_at_weight">at %1$s</string>
+
+    <string name="settings_cargo_profiles">Cargo profiles</string>
+    <string name="cargo_profile_name">Name</string>
+    <string name="cargo_profile_rate">$ per kg</string>
+    <string name="cargo_profile_add">Add profile</string>
+    <string name="cargo_profile_delete">Delete</string>
+    <string name="cargo_profile_selected">Selected</string>
+
+    <string name="settings_app">App</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_none">You\'re on the latest version</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="update_get">Download update</string>
+    <string name="update_failed">Couldn\'t check — try again later</string>
 </resources>

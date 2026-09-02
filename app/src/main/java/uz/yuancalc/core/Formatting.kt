@@ -42,3 +42,19 @@ fun formatMarkup(value: Double?): String {
     val amount = BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP)
     return amount.toPlainString() + "×"
 }
+
+/**
+ * Maximums round DOWN, unlike every other figure in the app. A max cost of
+ * ¥37.4359 shown as ¥37.44 tells the user to pay a price that misses the
+ * target markup they asked for; ¥37.43 clears it.
+ */
+fun formatUsdFloor(value: Double): String =
+    "$" + BigDecimal.valueOf(value).setScale(2, RoundingMode.FLOOR).toPlainString()
+
+/** ¥ maximum, floored for the same reason as [formatUsdFloor]. */
+fun formatCnyFloor(value: Double): String =
+    "¥" + BigDecimal.valueOf(value).setScale(2, RoundingMode.FLOOR).toPlainString()
+
+/** ¥50.014 -> "¥50.01", half-up — for costs already paid, not maximums. */
+fun formatCny(value: Double): String =
+    "¥" + BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).toPlainString()

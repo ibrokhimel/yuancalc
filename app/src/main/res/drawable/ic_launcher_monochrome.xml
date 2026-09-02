@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed-icon layer (Android 13+). Same geometry, flat white: the system
+  recolours it from the wallpaper palette, so it must not carry brand color.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.92"
+        android:scaleY="0.92">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M32,29 L41.3,29 L54,43.62 L66.7,29 L76,29 L57.5,50.3 L57.5,78.5 L50.5,78.5 L50.5,50.3 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M33,55.5 L75,55.5 L75,61.5 L33,61.5 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M33,66.5 L75,66.5 L75,72.5 L33,72.5 Z" />
+    </group>
+</vector>

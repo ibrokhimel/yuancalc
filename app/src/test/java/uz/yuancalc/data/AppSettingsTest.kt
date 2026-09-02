@@ -68,4 +68,49 @@ class AppSettingsTest {
         assertEquals(11_817.0, rates.usdToUzs, 1e-9)
         assertEquals(RateSource.PINNED, rates.source)
     }
+
+    private val threeProfiles = AppSettings.DEFAULT.copy(
+        cargoProfiles = listOf(
+            CargoProfile("a", "Air", 15.0),
+            CargoProfile("b", "Truck", 9.0),
+            CargoProfile("c", "Rail", 6.5),
+        ),
+        selectedCargoProfileId = "b",
+    )
+
+    @Test
+    fun `selected cargo profile resolves, with a fallback for dangling ids`() {
+        assertEquals("Truck", threeProfiles.selectedCargoProfile().name)
+        assertEquals(
+            "Air",
+            threeProfiles.copy(selectedCargoProfileId = "gone").selectedCargoProfile().name,
+        )
+    }
+
+    @Test
+    fun `deleting the selected profile reselects the first remaining`() {
+        val after = threeProfiles.withCargoProfileDeleted("b")
+        assertEquals(listOf("a", "c"), after.cargoProfiles.map { it.id })
+        assertEquals("a", after.selectedCargoProfileId)
+    }
+
+    @Test
+    fun `deleting an unselected profile keeps the selection`() {
+        val after = threeProfiles.withCargoProfileDeleted("c")
+        assertEquals("b", after.selectedCargoProfileId)
+    }
+
+    @Test
+    fun `deleting the last profile is refused`() {
+        val one = AppSettings.DEFAULT
+        assertEquals(1, one.cargoProfiles.size)
+        assertEquals(one, one.withCargoProfileDeleted(one.cargoProfiles.first().id))
+    }
+
+    @Test
+    fun `rename keeps the id so the selection survives`() {
+        val renamed = threeProfiles.withCargoProfileUpdated(CargoProfile("b", "Fast truck", 9.0))
+        assertEquals("Fast truck", renamed.selectedCargoProfile().name)
+        assertEquals("b", renamed.selectedCargoProfileId)
+    }
 }
