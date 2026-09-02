@@ -8,7 +8,12 @@
     <string name="label_weight">Og\'irligi</string>
     <string name="label_other_costs">Boshqa xarajatlar (dona uchun)</string>
     <string name="label_landed_cost">Yetkazilgan tannarx</string>
-    <string name="label_suggested_prices">Tavsiya etilgan narxlar</string>
+    <string name="label_suggested_prices">Narxingizni toping</string>
+    <string name="verdict_unprofitable">Zarar</string>
+    <string name="verdict_soft">Kam foyda</string>
+    <string name="verdict_profitable">Foydali</string>
+    <string name="verdict_excellent">Ajoyib narx</string>
+    <string name="verdict_nobody">Hech kim olmaydi</string>
     <string name="label_my_price">Mening narxim</string>
     <string name="tier_soft">Minimal</string>
     <string name="tier_profitable">Foydali</string>
@@ -19,7 +24,8 @@
     <string name="sensitivity_title">Og\'irlik noto\'g\'ri bo\'lsa</string>
     <string name="action_done">Tayyor</string>
 
-    <string name="rate_status_live">Jonli · yangilandi %1$s</string>
+    <string name="rate_status_updating">Kurslar yangilanmoqda…</string>
+    <string name="rate_status_updated">%1$s yangilandi</string>
     <string name="rate_status_cached">Oflayn · kurs %1$s</string>
     <string name="rate_status_pinned">Qo\'lda kiritilgan kurs</string>
     <string name="rate_status_bundled">Ichki kurs · hali yangilanmagan</string>
@@ -43,10 +49,34 @@
     <string name="settings_pin_cny">1 ¥ ni $ da belgilash</string>
     <string name="settings_pin_uzs">$1 ni so\'mda belgilash</string>
     <string name="settings_unpin">Bekor qilish</string>
+    <string name="settings_not_pinned">belgilanmagan</string>
     <string name="settings_refresh">Kurslarni yangilash</string>
     <string name="settings_language">Til</string>
     <string name="settings_language_system">Tizim</string>
     <string name="settings_language_english">English</string>
     <string name="settings_language_uzbek">O\'zbekcha</string>
     <string name="settings_tiers_warning">Minimal koeffitsiyent foydalidan yuqori.</string>
+
+    <string name="mode_price">Sotish</string>
+    <string name="mode_source">Olish</string>
+    <string name="label_target_price">Maqsad narx</string>
+    <string name="label_max_cost">Maksimal xarid</string>
+    <string name="sourcing_impossible">Kargoning o\'zi %1$s. %2$s bilan bu narx faqat %3$s xarajat ko\'taradi.</string>
+    <string name="sourcing_at_weight">%1$s da</string>
+
+    <string name="settings_cargo_profiles">Kargo profillari</string>
+    <string name="cargo_profile_name">Nomi</string>
+    <string name="cargo_profile_rate">kg uchun $</string>
+    <string name="cargo_profile_add">Profil qo\'shish</string>
+    <string name="cargo_profile_delete">O\'chirish</string>
+    <string name="cargo_profile_selected">Tanlangan</string>
+
+    <string name="settings_app">Ilova</string>
+    <string name="settings_version">Versiya %1$s</string>
+    <string name="update_check">Yangilanishni tekshirish</string>
+    <string name="update_checking">Tekshirilmoqda…</string>
+    <string name="update_none">Eng oxirgi versiya o\'rnatilgan</string>
+    <string name="update_available">%1$s versiyasi chiqdi</string>
+    <string name="update_get">Yangilanishni yuklab olish</string>
+    <string name="update_failed">Tekshirib bo\'lmadi — keyinroq urinib ko\'ring</string>
 </resources>

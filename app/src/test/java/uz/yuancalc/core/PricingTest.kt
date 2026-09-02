@@ -14,12 +14,24 @@ private val FIXTURE = Rates(
     fetchedAtEpochSeconds = null,
 )
 
+/**
+ * Test inputs still speak yuan; the ¥→$ conversion the app now does at the
+ * field boundary happens here instead, so every landed expectation is
+ * unchanged from the original spec.
+ */
 private fun input(
     costCny: Double = 50.0,
     weightGrams: Double = 600.0,
     cargoRateUsdPerKg: Double = 9.0,
     otherCostsUsd: Double = 0.0,
-) = PricingInput(costCny, weightGrams, cargoRateUsdPerKg, otherCostsUsd)
+) = PricingInput(costCny * FIXTURE.cnyToUsd, weightGrams, cargoRateUsdPerKg, otherCostsUsd)
+
+private fun sourcingInput(
+    targetUzs: Double = 299_000.0,
+    weightGrams: Double = 600.0,
+    cargoRateUsdPerKg: Double = 9.0,
+    otherCostsUsd: Double = 0.0,
+) = SourcingInput(targetUzs / FIXTURE.usdToUzs, weightGrams, cargoRateUsdPerKg, otherCostsUsd)
 
 private fun roundTo2(value: Double): Double =
     java.math.BigDecimal.valueOf(value)
@@ -155,5 +167,108 @@ class PricingTest {
         assertFalse(RateBounds.isPlausible(usdToUzs = 11_850.0, usdToCny = 0.0))
         assertFalse(RateBounds.isPlausible(usdToUzs = 500_000.0, usdToCny = 6.74))
         assertFalse(RateBounds.isPlausible(usdToUzs = 11_850.0, usdToCny = 900.0))
+    }
+
+    @Test
+    fun `price verdict zones follow the user's tiers`() {
+        assertEquals(PriceVerdict.UNPROFITABLE, priceVerdict(0.99, soft = 1.8, profitable = 2.3))
+        assertEquals(PriceVerdict.SOFT, priceVerdict(1.0, soft = 1.8, profitable = 2.3))
+        assertEquals(PriceVerdict.SOFT, priceVerdict(1.79, soft = 1.8, profitable = 2.3))
+        assertEquals(PriceVerdict.PROFITABLE, priceVerdict(1.8, soft = 1.8, profitable = 2.3))
+        assertEquals(PriceVerdict.PROFITABLE, priceVerdict(2.3, soft = 1.8, profitable = 2.3))
+        assertEquals(PriceVerdict.EXCELLENT, priceVerdict(2.35, soft = 1.8, profitable = 2.3))
+        assertEquals(PriceVerdict.EXCELLENT, priceVerdict(3.3, soft = 1.8, profitable = 2.3))
+        assertEquals(PriceVerdict.NOBODY, priceVerdict(3.35, soft = 1.8, profitable = 2.3))
+    }
+
+    @Test
+    fun `price verdict tolerates swapped tiers`() {
+        assertEquals(PriceVerdict.SOFT, priceVerdict(1.5, soft = 2.3, profitable = 1.8))
+        assertEquals(PriceVerdict.PROFITABLE, priceVerdict(2.0, soft = 2.3, profitable = 1.8))
+    }
+
+    @Test
+    fun `sourcing budget at the profitable tier matches the spec exactly`() {
+        val max = maxProductUsd(sourcingInput(), 2.3)!!
+        assertEquals(5.570464, max, 1e-6)
+        assertEquals("$5.57", formatUsdFloor(max))
+        assertEquals("¥37.43", formatCnyFloor(maxCostCny(max, FIXTURE)!!))
+    }
+
+    @Test
+    fun `sourcing budget at the soft tier`() {
+        val max = maxProductUsd(sourcingInput(), 1.8)!!
+        assertEquals(8.617815, max, 1e-6)
+        assertEquals("$8.61", formatUsdFloor(max))
+        assertEquals("¥57.91", formatCnyFloor(maxCostCny(max, FIXTURE)!!))
+    }
+
+    @Test
+    fun `sourcing budget shifts with weight`() {
+        val at500 = maxCostCny(maxProductUsd(sourcingInput(weightGrams = 500.0), 2.3), FIXTURE)!!
+        val at700 = maxCostCny(maxProductUsd(sourcingInput(weightGrams = 700.0), 2.3), FIXTURE)!!
+        assertEquals("¥43.48", formatCnyFloor(at500))
+        assertEquals("¥31.38", formatCnyFloor(at700))
+    }
+
+    @Test
+    fun `floor rounding is the rule - half-up advice would miss the target`() {
+        // The exact maximum is ¥37.4359. Feed the half-up display value ¥37.44
+        // back through forward mode: the markup lands BELOW 2.3×, which is
+        // exactly the bad advice floor rounding exists to prevent.
+        val landedAtHalfUp = landedCost(input(costCny = 37.44), FIXTURE).totalUsd
+        val markup = markupForPrice(landedAtHalfUp, 299_000.0 / FIXTURE.usdToUzs)!!
+        assertTrue(markup < 2.3)
+
+        // The floored ¥37.43 clears it.
+        val landedAtFloor = landedCost(input(costCny = 37.43), FIXTURE).totalUsd
+        assertTrue(markupForPrice(landedAtFloor, 299_000.0 / FIXTURE.usdToUzs)!! >= 2.3)
+    }
+
+    @Test
+    fun `a forward-rounded price survives the reverse trip with headroom`() {
+        // Forward: ¥50 at 600 g at 2.3× suggests 350 000 so'm (rounded up).
+        // Reverse on that price returns slightly MORE than ¥50 — the rounding
+        // headroom — and never less.
+        val cny = maxCostCny(maxProductUsd(sourcingInput(targetUzs = 350_000.0), 2.3), FIXTURE)!!
+        assertEquals(50.01, roundTo2(cny), 1e-9)
+        assertTrue(cny > 50.0)
+    }
+
+    @Test
+    fun `sourcing returns null when the price cannot work`() {
+        // 60 000 so'm at 2.3×: cargo $5.40 exceeds the $2.20 landed budget.
+        assertNull(maxProductUsd(sourcingInput(targetUzs = 60_000.0), 2.3))
+        assertNull(maxProductUsd(sourcingInput(), 0.0))
+        assertNull(maxProductUsd(sourcingInput(targetUzs = 0.0), 2.3))
+    }
+
+    @Test
+    fun `zero weight leaves the whole budget for the product`() {
+        val max = maxProductUsd(sourcingInput(weightGrams = 0.0), 2.3)!!
+        assertEquals(299_000.0 / FIXTURE.usdToUzs / 2.3, max, 1e-9)
+    }
+
+    @Test
+    fun `round trip - reverse then forward always clears the multiple`() {
+        for (targetUzs in listOf(150_000.0, 299_000.0, 500_000.0, 1_000_000.0)) {
+            for (grams in listOf(100.0, 600.0, 1_500.0)) {
+                for (multiple in listOf(1.5, 1.8, 2.3, 3.0)) {
+                    val max = maxProductUsd(
+                        sourcingInput(targetUzs = targetUzs, weightGrams = grams),
+                        multiple,
+                    ) ?: continue
+                    val landed = landedCost(
+                        PricingInput(max, grams, 9.0, 0.0),
+                        FIXTURE,
+                    ).totalUsd
+                    val markup = markupForPrice(landed, targetUzs / FIXTURE.usdToUzs)!!
+                    assertTrue(
+                        "markup $markup below $multiple at $targetUzs/$grams",
+                        markup >= multiple - 1e-9,
+                    )
+                }
+            }
+        }
     }
 }

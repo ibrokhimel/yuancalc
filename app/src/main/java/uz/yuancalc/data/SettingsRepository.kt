@@ -12,6 +12,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import uz.yuancalc.core.MoneyCurrency
 import uz.yuancalc.core.PriceRounding
 import uz.yuancalc.core.WeightUnit
@@ -37,7 +39,25 @@ private object Keys {
     val lastWeight = stringPreferencesKey("last_weight")
     val lastOther = stringPreferencesKey("last_other_costs")
     val lastMyPrice = stringPreferencesKey("last_my_price")
+    val lastTargetPrice = stringPreferencesKey("last_target_price")
+    val costCurrency = stringPreferencesKey("cost_currency")
+    val targetPriceCurrency = stringPreferencesKey("target_price_currency")
+    val calcMode = stringPreferencesKey("calc_mode")
+    val cargoProfiles = stringPreferencesKey("cargo_profiles")
+    val selectedCargoProfile = stringPreferencesKey("selected_cargo_profile_id")
 }
+
+private val profilesJson = Json { ignoreUnknownKeys = true }
+
+private fun encodeCargoProfiles(profiles: List<CargoProfile>): String =
+    profilesJson.encodeToString(ListSerializer(CargoProfile.serializer()), profiles)
+
+private fun decodeCargoProfiles(raw: String?): List<CargoProfile>? =
+    raw?.let {
+        runCatching {
+            profilesJson.decodeFromString(ListSerializer(CargoProfile.serializer()), it)
+        }.getOrNull()?.takeIf { list -> list.isNotEmpty() }
+    }
 
 class SettingsRepository(private val context: Context) {
 
@@ -66,8 +86,22 @@ private inline fun <reified T : Enum<T>> String?.toEnumOr(fallback: T): T =
 
 private fun Preferences.toAppSettings(): AppSettings {
     val d = AppSettings.DEFAULT
+
+    // Migration: on the first read where no profile list exists, synthesize one
+    // from the legacy single rate — which may be a real value the user set, so
+    // it must carry over, never reset to the default 9.0. The legacy key stays
+    // written for one release so a downgrade keeps it too.
+    val legacyRate = this[Keys.cargoRate] ?: d.cargoRateUsdPerKg
+    val profiles = decodeCargoProfiles(this[Keys.cargoProfiles]) ?: listOf(
+        CargoProfile(
+            id = AppSettings.DEFAULT_CARGO_PROFILE_ID,
+            name = "Cargo",
+            ratePerKgUsd = legacyRate,
+        ),
+    )
+
     return AppSettings(
-        cargoRateUsdPerKg = this[Keys.cargoRate] ?: d.cargoRateUsdPerKg,
+        cargoRateUsdPerKg = legacyRate,
         softMultiple = this[Keys.soft] ?: d.softMultiple,
         profitableMultiple = this[Keys.profitable] ?: d.profitableMultiple,
         priceRoundingStep = this[Keys.roundingStep] ?: d.priceRoundingStep,
@@ -75,6 +109,11 @@ private fun Preferences.toAppSettings(): AppSettings {
         weightUnit = this[Keys.weightUnit].toEnumOr(d.weightUnit),
         myPriceCurrency = this[Keys.myPriceCurrency].toEnumOr(d.myPriceCurrency),
         otherCostsCurrency = this[Keys.otherCostsCurrency].toEnumOr(d.otherCostsCurrency),
+        costCurrency = this[Keys.costCurrency].toEnumOr(d.costCurrency),
+        targetPriceCurrency = this[Keys.targetPriceCurrency].toEnumOr(d.targetPriceCurrency),
+        calcMode = this[Keys.calcMode].toEnumOr(d.calcMode),
+        cargoProfiles = profiles,
+        selectedCargoProfileId = this[Keys.selectedCargoProfile] ?: profiles.first().id,
         language = this[Keys.language].toEnumOr(d.language),
         pinnedCnyToUsd = this[Keys.pinnedCny],
         pinnedUsdToUzs = this[Keys.pinnedUzs],
@@ -85,6 +124,7 @@ private fun Preferences.toAppSettings(): AppSettings {
         lastWeight = this[Keys.lastWeight] ?: d.lastWeight,
         lastOtherCosts = this[Keys.lastOther] ?: d.lastOtherCosts,
         lastMyPrice = this[Keys.lastMyPrice] ?: d.lastMyPrice,
+        lastTargetPrice = this[Keys.lastTargetPrice] ?: d.lastTargetPrice,
     )
 }
 
@@ -98,10 +138,20 @@ private fun MutablePreferences.write(s: AppSettings) {
     this[Keys.myPriceCurrency] = s.myPriceCurrency.name
     this[Keys.otherCostsCurrency] = s.otherCostsCurrency.name
     this[Keys.language] = s.language.name
+    this[Keys.costCurrency] = s.costCurrency.name
+    this[Keys.targetPriceCurrency] = s.targetPriceCurrency.name
+    this[Keys.calcMode] = s.calcMode.name
+    this[Keys.cargoProfiles] = encodeCargoProfiles(s.cargoProfiles)
     this[Keys.lastCost] = s.lastCost
     this[Keys.lastWeight] = s.lastWeight
     this[Keys.lastOther] = s.lastOtherCosts
     this[Keys.lastMyPrice] = s.lastMyPrice
+    this[Keys.lastTargetPrice] = s.lastTargetPrice
+    if (s.selectedCargoProfileId != null) {
+        this[Keys.selectedCargoProfile] = s.selectedCargoProfileId
+    } else {
+        remove(Keys.selectedCargoProfile)
+    }
 
     if (s.pinnedCnyToUsd != null) this[Keys.pinnedCny] = s.pinnedCnyToUsd else remove(Keys.pinnedCny)
     if (s.pinnedUsdToUzs != null) this[Keys.pinnedUzs] = s.pinnedUsdToUzs else remove(Keys.pinnedUzs)
