@@ -71,11 +71,14 @@ class CalculatorViewModel(
             settingsRepository.settings.collect { s ->
                 if (!restored) {
                     restored = true
+                    // myPrice is not restored: its card is gone from the
+                    // UI, and a stale value would invisibly steer the
+                    // weight-sensitivity strip.
                     inputs.value = CalculatorInputs(
                         s.lastCost,
                         s.lastWeight,
                         s.lastOtherCosts,
-                        s.lastMyPrice,
+                        "",
                         s.lastTargetPrice,
                     )
                 }

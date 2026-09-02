@@ -30,8 +30,12 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -82,11 +86,30 @@ private fun verdictLabel(verdict: PriceVerdict): Int = when (verdict) {
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val inputs by vm.inputsFlow.collectAsStateWithLifecycle()
+    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
 
+    // Chrome-style pull past the top re-fetches the rates.
+    val pullState = rememberPullToRefreshState()
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = vm::refreshRates,
+        state = pullState,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullState,
+                isRefreshing = refreshing,
+                containerColor = Palette.SurfaceHigh,
+                color = Palette.Accent,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
+        modifier = Modifier.fillMaxSize(),
+    ) {
     Column(
         Modifier
             .fillMaxSize()
@@ -119,8 +142,8 @@ fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
             }
         }
 
-        val refreshing by vm.refreshing.collectAsStateWithLifecycle()
         RateStatusLine(rates = state.rates, refreshing = refreshing, onClick = onOpenSettings)
+    }
     }
 }
 
@@ -360,24 +383,22 @@ private fun PriceContent(
                     color = Palette.TextHi,
                 )
             }
-            TextButton(
-                onClick = { vm.onMyPriceChange(quote.priceUzs.toLong().toString()) },
-                contentPadding = PaddingValues(0.dp),
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.padding(vertical = 8.dp),
             ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    AnimatedAmountText(
-                        formatUzs(quote.priceUzs),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Palette.TextHi,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        formatUsd(quote.priceUsd),
-                        style = Ds.AccentSmall,
-                        color = Palette.Accent,
-                        modifier = Modifier.padding(bottom = 3.dp),
-                    )
-                }
+                AnimatedAmountText(
+                    formatUzs(quote.priceUzs),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Palette.TextHi,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    formatUsd(quote.priceUsd),
+                    style = Ds.AccentSmall,
+                    color = Palette.Accent,
+                    modifier = Modifier.padding(bottom = 3.dp),
+                )
             }
             val low = minOf(settings.softMultiple, settings.profitableMultiple)
             val high = maxOf(settings.softMultiple, settings.profitableMultiple)
@@ -394,50 +415,6 @@ private fun PriceContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = Palette.TextMid,
             )
-        }
-    }
-
-    Column(Modifier.padding(top = gap)) {
-        SectionCard(stringResource(R.string.label_my_price)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                AmountField(
-                    label = stringResource(R.string.label_my_price),
-                    value = inputs.myPrice,
-                    onValueChange = vm::onMyPriceChange,
-                    modifier = Modifier.weight(1f),
-                )
-                OptionToggle(
-                    options = listOf(
-                        MoneyCurrency.UZS to stringResource(R.string.currency_uzs),
-                        MoneyCurrency.USD to stringResource(R.string.currency_usd),
-                    ),
-                    selected = settings.myPriceCurrency,
-                    onSelect = { c -> vm.updateSettings { it.copy(myPriceCurrency = c) } },
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-            state.myPriceCheck?.let { check ->
-                val bandColor by animateColorAsState(
-                    targetValue = bandColor(state.band),
-                    animationSpec = tween(350),
-                    label = "bandColor",
-                )
-                AnimatedAmountText(
-                    formatMarkup(check.markup),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = bandColor,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-                Text(
-                    stringResource(R.string.label_profit) + "  " +
-                        formatUsd(check.profitUsd) + "  ≈  " + formatUzs(check.profitUzs),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Palette.TextMid,
-                )
-            }
         }
     }
 
