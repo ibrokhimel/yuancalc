@@ -1,16 +1,19 @@
 package uz.yuancalc.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,9 +22,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import uz.yuancalc.core.parseAmount
+import uz.yuancalc.ui.theme.Palette
+
+/** One field treatment for the whole app: raised surface, hairline, gold focus. */
+@Composable
+private fun amountFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = Palette.SurfaceHigh,
+    unfocusedContainerColor = Palette.SurfaceHigh,
+    focusedBorderColor = Palette.Gold.copy(alpha = 0.55f),
+    unfocusedBorderColor = Palette.Hairline,
+    focusedLabelColor = Palette.Gold,
+    unfocusedLabelColor = Palette.TextMid,
+    cursorColor = Palette.Gold,
+    focusedTextColor = Palette.TextHi,
+    unfocusedTextColor = Palette.TextHi,
+    focusedSuffixColor = Palette.TextMid,
+    unfocusedSuffixColor = Palette.TextMid,
+)
 
 /**
  * A numeric text field whose text is owned by the caller. Used for the
@@ -42,6 +63,8 @@ fun AmountField(
         singleLine = true,
         suffix = suffix?.let { { Text(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        shape = MaterialTheme.shapes.medium,
+        colors = amountFieldColors(),
         modifier = modifier,
     )
 }
@@ -91,6 +114,8 @@ fun DraftNumberField(
         singleLine = true,
         suffix = suffix?.let { { Text(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        shape = MaterialTheme.shapes.medium,
+        colors = amountFieldColors(),
         modifier = modifier.onFocusChanged { focused = it.isFocused },
     )
 }
@@ -109,23 +134,37 @@ fun <T> OptionToggle(
                 selected = option.first == selected,
                 onClick = { onSelect(option.first) },
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = Palette.SurfaceHigh,
+                    activeContentColor = Palette.TextHi,
+                    activeBorderColor = Palette.Hairline,
+                    inactiveContainerColor = Color.Transparent,
+                    inactiveContentColor = Palette.TextMid,
+                    inactiveBorderColor = Palette.Hairline,
+                ),
+                icon = {},
             ) { Text(option.second) }
         }
     }
 }
 
+/** Bordered card on the ink background; hairline instead of shadow. */
 @Composable
 fun SectionCard(title: String, content: @Composable () -> Unit) {
-    Card(
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = Palette.Surface,
+        contentColor = Palette.TextHi,
+        border = BorderStroke(1.dp, Palette.Hairline),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
+            .padding(vertical = 6.dp),
     ) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(16.dp)) {
             Text(
                 title.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Palette.TextLo,
             )
             content()
         }

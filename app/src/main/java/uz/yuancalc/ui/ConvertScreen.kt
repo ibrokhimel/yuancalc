@@ -54,7 +54,7 @@ fun ConvertScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         AmountField(
             label = stringResource(R.string.convert_amount),

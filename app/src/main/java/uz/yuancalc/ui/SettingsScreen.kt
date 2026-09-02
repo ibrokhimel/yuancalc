@@ -33,7 +33,7 @@ fun SettingsScreen(vm: CalculatorViewModel) {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         SectionCard(stringResource(R.string.settings_cargo_rate)) {
             DraftNumberField(
@@ -80,9 +80,9 @@ fun SettingsScreen(vm: CalculatorViewModel) {
                 options = listOf(
                     0 to stringResource(R.string.settings_rounding_off),
                     500 to "500",
-                    1_000 to "1 000",
-                    5_000 to "5 000",
-                    10_000 to "10 000",
+                    1_000 to "1k",
+                    5_000 to "5k",
+                    10_000 to "10k",
                 ),
                 selected = s.priceRoundingStep,
                 onSelect = { step -> vm.updateSettings { it.copy(priceRoundingStep = step) } },

@@ -1,11 +1,21 @@
 package uz.yuancalc.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,6 +40,7 @@ import uz.yuancalc.core.parseAmount
 import uz.yuancalc.ui.theme.BandGood
 import uz.yuancalc.ui.theme.BandLow
 import uz.yuancalc.ui.theme.BandOk
+import uz.yuancalc.ui.theme.Palette
 
 @Composable
 fun bandColor(band: MarkupBand): Color = when (band) {
@@ -63,6 +74,7 @@ fun TierRow(
             Text(
                 name,
                 style = MaterialTheme.typography.titleSmall,
+                color = Palette.TextMid,
                 modifier = Modifier.weight(1f),
             )
             if (editing) {
@@ -79,33 +91,51 @@ fun TierRow(
                     Text(stringResource(R.string.action_done))
                 }
             } else {
-                TextButton(
+                Surface(
                     onClick = {
                         draft = trimNumber(quote.multiple)
                         editing = true
-                    }
+                    },
+                    shape = RoundedCornerShape(50),
+                    color = Palette.SurfaceHigh,
+                    contentColor = Palette.TextHi,
+                    border = BorderStroke(1.dp, Palette.Hairline),
                 ) {
-                    Text(formatMarkup(quote.multiple))
+                    Text(
+                        formatMarkup(quote.multiple),
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                    )
                 }
             }
         }
         TextButton(onClick = onUse, contentPadding = PaddingValues(0.dp)) {
             Text(
-                formatUzs(quote.priceUzs) + "    " + formatUsd(quote.priceUsd),
+                formatUzs(quote.priceUzs),
                 style = MaterialTheme.typography.titleMedium,
+                color = Palette.TextHi,
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                formatUsd(quote.priceUsd),
+                style = MaterialTheme.typography.titleMedium,
+                color = Palette.Gold,
             )
         }
         Text(
             stringResource(R.string.label_profit) + "  " +
                 formatUsd(quote.profitUsd) + "  ≈  " + formatUzs(quote.profitUzs),
             style = MaterialTheme.typography.bodySmall,
+            color = Palette.TextMid,
         )
     }
 }
 
 /**
  * Always states which rates produced the numbers above it. A stale rate
- * corrupts every figure on screen silently, so this is never hidden.
+ * corrupts every figure on screen silently, so this is never hidden — the dot
+ * color says at a glance whether rates are live (green), cached (amber) or
+ * manual/bundled (gray).
  */
 @Composable
 fun RateStatusLine(rates: Rates, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -117,8 +147,36 @@ fun RateStatusLine(rates: Rates, onClick: () -> Unit, modifier: Modifier = Modif
         RateSource.PINNED -> stringResource(R.string.rate_status_pinned)
         RateSource.BUNDLED -> stringResource(R.string.rate_status_bundled)
     }
-    TextButton(onClick = onClick, modifier = modifier.fillMaxWidth()) {
-        Text(text, style = MaterialTheme.typography.bodySmall)
+    val dot = when (rates.source) {
+        RateSource.LIVE -> BandGood
+        RateSource.CACHED -> BandOk
+        RateSource.PINNED, RateSource.BUNDLED -> Palette.TextLo
+    }
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+    ) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(50),
+            color = Palette.Surface,
+            border = BorderStroke(1.dp, Palette.Hairline),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Box(
+                    Modifier
+                        .size(7.dp)
+                        .background(dot, CircleShape)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(text, style = MaterialTheme.typography.bodySmall, color = Palette.TextMid)
+            }
+        }
     }
 }
 

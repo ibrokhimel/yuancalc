@@ -33,6 +33,7 @@ import uz.yuancalc.ui.components.RateStatusLine
 import uz.yuancalc.ui.components.SectionCard
 import uz.yuancalc.ui.components.TierRow
 import uz.yuancalc.ui.components.bandColor
+import uz.yuancalc.ui.theme.Palette
 
 @Composable
 fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
@@ -45,7 +46,7 @@ fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         AmountField(
             label = stringResource(R.string.label_cost),
@@ -58,6 +59,7 @@ fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
             formatUsd(state.landed.productUsd) + "   ≈   " +
                 formatUzs(state.landed.productUsd * state.rates.usdToUzs),
             style = MaterialTheme.typography.bodySmall,
+            color = Palette.TextMid,
             modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 10.dp),
         )
 
@@ -117,6 +119,7 @@ fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
                     formatUsd(state.landed.cargoUsd) +
                     (if (state.landed.otherUsd > 0.0) "  +  " + formatUsd(state.landed.otherUsd) else ""),
                 style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextMid,
             )
         }
 
@@ -167,6 +170,7 @@ fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
                     stringResource(R.string.label_profit) + "  " +
                         formatUsd(check.profitUsd) + "  ≈  " + formatUzs(check.profitUzs),
                     style = MaterialTheme.typography.bodyMedium,
+                    color = Palette.TextMid,
                 )
             }
         }
@@ -184,6 +188,7 @@ fun CalculatorScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
                             row.weightGrams.toLong().toString() + " " +
                                 stringResource(R.string.unit_grams),
                             style = MaterialTheme.typography.bodySmall,
+                            color = Palette.TextLo,
                         )
                         Text(
                             formatMarkup(row.markup),
