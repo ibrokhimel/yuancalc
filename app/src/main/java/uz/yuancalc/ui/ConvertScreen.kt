@@ -27,8 +27,12 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,8 +66,10 @@ private enum class ConvertFrom { CNY, USD, UZS }
  * say. Same rates and same status line as the calculator.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ConvertScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     var amount by remember { mutableStateOf("") }
     var from by remember { mutableStateOf(ConvertFrom.CNY) }
 
@@ -78,6 +84,22 @@ fun ConvertScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
     val cny = if (rates.cnyToUsd > 0.0) usd / rates.cnyToUsd else 0.0
     val uzs = usd * rates.usdToUzs
 
+    val pullState = rememberPullToRefreshState()
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = vm::refreshRates,
+        state = pullState,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullState,
+                isRefreshing = refreshing,
+                containerColor = Palette.SurfaceHigh,
+                color = Palette.Accent,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
+        modifier = Modifier.fillMaxSize(),
+    ) {
     Column(
         Modifier
             .fillMaxSize()
@@ -125,8 +147,8 @@ fun ConvertScreen(vm: CalculatorViewModel, onOpenSettings: () -> Unit) {
             )
         }
 
-        val refreshing by vm.refreshing.collectAsStateWithLifecycle()
         RateStatusLine(rates = rates, refreshing = refreshing, onClick = onOpenSettings)
+    }
     }
 }
 
