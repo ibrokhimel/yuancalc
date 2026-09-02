@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
         val updates = GitHubUpdatesApi(client)
         val vm = ViewModelProvider(
             this,
-            CalculatorViewModel.Factory(settings, rates, updates),
+            CalculatorViewModel.Factory(settings, rates, updates, applicationContext.cacheDir),
         )[CalculatorViewModel::class.java]
 
         setContent {

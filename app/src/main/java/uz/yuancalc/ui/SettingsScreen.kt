@@ -18,15 +18,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.io.File
 import java.util.UUID
 import uz.yuancalc.BuildConfig
 import uz.yuancalc.R
@@ -232,28 +238,61 @@ fun SettingsScreen(vm: CalculatorViewModel) {
                     color = BandLow,
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                is UpdateStatus.Available -> Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .padding(top = 10.dp)
-                        .clickable { uriHandler.openUri(u.url) },
-                ) {
-                    Icon(
-                        Icons.Filled.ArrowCircleDown,
-                        contentDescription = null,
-                        tint = Palette.Accent,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        stringResource(R.string.update_available, u.version) +
-                            " · " + stringResource(R.string.update_get),
-                        style = Ds.UpdateNote,
-                        color = Palette.Accent,
+                is UpdateStatus.Available -> UpdateNoteRow(
+                    text = stringResource(R.string.update_available, u.version) +
+                        " · " + stringResource(R.string.update_get),
+                    onClick = {
+                        if (u.apkUrl != null) vm.downloadUpdate()
+                        else uriHandler.openUri(u.url)
+                    },
+                )
+                is UpdateStatus.Downloading -> UpdateNoteRow(
+                    text = stringResource(R.string.update_downloading, u.percent),
+                    onClick = {},
+                )
+                is UpdateStatus.ReadyToInstall -> {
+                    val context = LocalContext.current
+                    LaunchedEffect(u.file) { installApk(context, u.file) }
+                    UpdateNoteRow(
+                        text = stringResource(R.string.update_install, u.version),
+                        onClick = { installApk(context, u.file) },
                     )
                 }
                 else -> Unit
             }
         }
     }
+}
+
+/** The accent one-liner under the update button: icon + short call to action. */
+@Composable
+private fun UpdateNoteRow(text: String, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .padding(top = 10.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Icon(
+            Icons.Filled.ArrowCircleDown,
+            contentDescription = null,
+            tint = Palette.Accent,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(text, style = Ds.UpdateNote, color = Palette.Accent)
+    }
+}
+
+/**
+ * Hands the downloaded APK to the system installer. Android always shows its
+ * own confirmation sheet here; no app can skip that step, so this is as
+ * automatic as an update gets outside a store.
+ */
+private fun installApk(context: Context, file: File) {
+    val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+    val intent = Intent(Intent.ACTION_VIEW)
+        .setDataAndType(uri, "application/vnd.android.package-archive")
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { context.startActivity(intent) }
 }

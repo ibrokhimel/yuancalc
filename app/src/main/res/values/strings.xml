@@ -83,5 +83,7 @@
     <string name="update_none">You\'re on the latest version</string>
     <string name="update_available">Version %1$s is available</string>
     <string name="update_get">Download update</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_install">Install version %1$s</string>
     <string name="update_failed">Couldn\'t check — try again later</string>
 </resources>
