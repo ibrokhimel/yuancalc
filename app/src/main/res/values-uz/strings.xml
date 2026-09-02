@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_calculator">Kalkulyator</string>
+    <string name="tab_convert">Konvertor</string>
+    <string name="tab_settings">Sozlamalar</string>
+
+    <string name="label_cost">Tannarx</string>
+    <string name="label_weight">Og\'irligi</string>
+    <string name="label_other_costs">Boshqa xarajatlar (dona uchun)</string>
+    <string name="label_landed_cost">Yetkazilgan tannarx</string>
+    <string name="label_suggested_prices">Tavsiya etilgan narxlar</string>
+    <string name="label_my_price">Mening narxim</string>
+    <string name="tier_soft">Minimal</string>
+    <string name="tier_profitable">Foydali</string>
+    <string name="label_profit">foyda</string>
+    <string name="unit_grams">g</string>
+    <string name="unit_kilograms">kg</string>
+    <string name="breakdown_cargo">kargo</string>
+    <string name="sensitivity_title">Og\'irlik noto\'g\'ri bo\'lsa</string>
+    <string name="action_done">Tayyor</string>
+
+    <string name="rate_status_live">Jonli · yangilandi %1$s</string>
+    <string name="rate_status_cached">Oflayn · kurs %1$s</string>
+    <string name="rate_status_pinned">Qo\'lda kiritilgan kurs</string>
+    <string name="rate_status_bundled">Ichki kurs · hali yangilanmagan</string>
+    <string name="just_now">hozir</string>
+    <string name="minutes_ago">%1$d daq oldin</string>
+    <string name="hours_ago">%1$d soat oldin</string>
+    <string name="days_ago">%1$d kun oldin</string>
+
+    <string name="convert_amount">Miqdor</string>
+    <string name="convert_result">Natija</string>
+
+    <string name="settings_cargo_rate">Kargo narxi (1 kg uchun $)</string>
+    <string name="settings_multiples">Narx koeffitsiyentlari</string>
+    <string name="settings_soft_multiple">Minimal koeffitsiyent</string>
+    <string name="settings_profitable_multiple">Foydali koeffitsiyent</string>
+    <string name="settings_rounding">Narxni yaxlitlash</string>
+    <string name="settings_rounding_off">O\'chiq</string>
+    <string name="settings_rounding_mode_up">Yuqoriga</string>
+    <string name="settings_rounding_mode_nearest">Eng yaqin</string>
+    <string name="settings_rates">Valyuta kurslari</string>
+    <string name="settings_pin_cny">1 ¥ ni $ da belgilash</string>
+    <string name="settings_pin_uzs">$1 ni so\'mda belgilash</string>
+    <string name="settings_unpin">Bekor qilish</string>
+    <string name="settings_refresh">Kurslarni yangilash</string>
+    <string name="settings_language">Til</string>
+    <string name="settings_language_system">Tizim</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_uzbek">O\'zbekcha</string>
+    <string name="settings_tiers_warning">Minimal koeffitsiyent foydalidan yuqori.</string>
+</resources>

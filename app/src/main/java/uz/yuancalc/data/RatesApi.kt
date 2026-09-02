@@ -1,0 +1,73 @@
+package uz.yuancalc.data
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
+
+data class FetchedRates(
+    val cnyToUsd: Double,
+    val usdToUzs: Double,
+    val fetchedAtEpochSeconds: Long,
+)
+
+interface RatesApi {
+    /** Returns null when the source responds but the response is unusable. */
+    suspend fun fetch(): FetchedRates?
+}
+
+private val json = Json { ignoreUnknownKeys = true }
+
+fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
+    .connectTimeout(10, TimeUnit.SECONDS)
+    .readTimeout(10, TimeUnit.SECONDS)
+    .build()
+
+/**
+ * Runs the blocking OkHttp call off the main thread. Without this, calling
+ * refresh() from a ViewModel scope throws NetworkOnMainThreadException, which
+ * the repository's catch-all swallows — so every fetch silently fails and the
+ * app quietly sits on bundled rates forever.
+ */
+private suspend fun OkHttpClient.getBody(url: String): String? = withContext(Dispatchers.IO) {
+    val request = Request.Builder().url(url).build()
+    newCall(request).execute().use { response ->
+        if (!response.isSuccessful) return@withContext null
+        response.body?.string()
+    }
+}
+
+/** open.er-api.com: { "rates": { "UZS": n, "CNY": n }, "time_last_update_unix": n } */
+class OpenErRatesApi(private val client: OkHttpClient) : RatesApi {
+    override suspend fun fetch(): FetchedRates? {
+        val body = client.getBody("https://open.er-api.com/v6/latest/USD") ?: return null
+        val root = json.parseToJsonElement(body).jsonObject
+        val rates = root["rates"]?.jsonObject ?: return null
+        val usdToUzs = rates["UZS"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+        val usdToCny = rates["CNY"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+        if (usdToCny == 0.0) return null
+        // Our fetch time, not the API's publish time: this source refreshes once
+        // a day, and "Live · updated 23 h ago" reads as a contradiction. The
+        // status line answers "when did the app last sync", so that is what we store.
+        return FetchedRates(1.0 / usdToCny, usdToUzs, System.currentTimeMillis() / 1000)
+    }
+}
+
+/** fawazahmed0 currency-api: { "date": "...", "usd": { "uzs": n, "cny": n } } */
+class CurrencyApiRatesApi(private val client: OkHttpClient) : RatesApi {
+    override suspend fun fetch(): FetchedRates? {
+        val body = client.getBody(
+            "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json"
+        ) ?: return null
+        val root = json.parseToJsonElement(body).jsonObject
+        val usd = root["usd"]?.jsonObject ?: return null
+        val usdToUzs = usd["uzs"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+        val usdToCny = usd["cny"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+        if (usdToCny == 0.0) return null
+        return FetchedRates(1.0 / usdToCny, usdToUzs, System.currentTimeMillis() / 1000)
+    }
+}

@@ -9,3 +9,8 @@
 .cxx
 local.properties
 /app/build
+.claude-flow/
+*.log
+.gradle/
+app/build/
+build/
