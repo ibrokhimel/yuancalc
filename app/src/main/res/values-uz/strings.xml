@@ -78,5 +78,7 @@
     <string name="update_none">Eng oxirgi versiya o\'rnatilgan</string>
     <string name="update_available">%1$s versiyasi chiqdi</string>
     <string name="update_get">Yangilanishni yuklab olish</string>
+    <string name="update_downloading">Yuklab olinmoqda… %1$d%%</string>
+    <string name="update_install">%1$s versiyasini o\'rnatish</string>
     <string name="update_failed">Tekshirib bo\'lmadi — keyinroq urinib ko\'ring</string>
 </resources>

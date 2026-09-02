@@ -3,6 +3,7 @@ package uz.yuancalc.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import java.io.File
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,9 @@ sealed interface UpdateStatus {
     data object Idle : UpdateStatus
     data object Checking : UpdateStatus
     data object UpToDate : UpdateStatus
-    data class Available(val version: String, val url: String) : UpdateStatus
+    data class Available(val version: String, val url: String, val apkUrl: String?) : UpdateStatus
+    data class Downloading(val percent: Int) : UpdateStatus
+    data class ReadyToInstall(val file: File, val version: String) : UpdateStatus
     data object Failed : UpdateStatus
 }
 
@@ -31,6 +34,7 @@ class CalculatorViewModel(
     private val settingsRepository: SettingsRepository,
     private val ratesRepository: RatesRepository,
     private val updatesApi: UpdatesApi,
+    private val updatesDir: File,
 ) : ViewModel() {
 
     private val inputs = MutableStateFlow(CalculatorInputs())
@@ -113,9 +117,28 @@ class CalculatorViewModel(
             updateFlow.value = when {
                 latest == null -> UpdateStatus.Failed
                 isNewerVersion(latest.versionName, BuildConfig.VERSION_NAME) ->
-                    UpdateStatus.Available(latest.versionName, latest.pageUrl)
+                    UpdateStatus.Available(latest.versionName, latest.pageUrl, latest.apkUrl)
                 else -> UpdateStatus.UpToDate
             }
+        }
+    }
+
+    /**
+     * Pulls the release APK into the app cache and hands it to the system
+     * installer — the whole update happens without leaving the app.
+     */
+    fun downloadUpdate() {
+        val available = updateFlow.value as? UpdateStatus.Available ?: return
+        val apkUrl = available.apkUrl ?: return
+        viewModelScope.launch {
+            updateFlow.value = UpdateStatus.Downloading(0)
+            val dest = File(File(updatesDir, "updates"), "yuancalc-" + available.version + ".apk")
+            val ok = updatesApi.download(apkUrl, dest) { percent ->
+                updateFlow.value = UpdateStatus.Downloading(percent)
+            }
+            updateFlow.value =
+                if (ok) UpdateStatus.ReadyToInstall(dest, available.version)
+                else UpdateStatus.Failed
         }
     }
 
@@ -153,9 +176,10 @@ class CalculatorViewModel(
         private val settingsRepository: SettingsRepository,
         private val ratesRepository: RatesRepository,
         private val updatesApi: UpdatesApi,
+        private val updatesDir: File,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            CalculatorViewModel(settingsRepository, ratesRepository, updatesApi) as T
+            CalculatorViewModel(settingsRepository, ratesRepository, updatesApi, updatesDir) as T
     }
 }
